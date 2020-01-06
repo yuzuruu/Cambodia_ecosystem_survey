@@ -40,6 +40,41 @@ library(viridisLite)
 # theme_set(theme_get() + theme(aspect.ratio = 3/4))
 # library(shinystan)
 
+
+
+
+readr::read_csv("../../southeastasiastudy/Cambodia/gps_log_file_dolphin/11/2019-03-10_07-48-25.csv")
+
+list.gps.log <- 
+  base::list.files("../../southeastasiastudy/Cambodia/gps_log_file_dolphin/",
+                   pattern = "csv$",
+                   recursive = TRUE,
+                   include.dirs = TRUE
+                   ) %>% 
+  paste("../../southeastasiastudy/Cambodia/gps_log_file_dolphin/",.,
+        sep = ""
+        )
+
+select.fun <- function(x){
+  dplyr::select(data = x,
+    INDEX, 
+    TIME, 
+    LATITUDE, 
+    LONGITUDE
+  )
+  }
+
+hoge <- 
+  list.gps.log %>% 
+  map(readr::read_csv) %>% 
+  
+  
+  
+  
+  mutate(selected.data = map(select.fun(.)))
+
+head(hoge)
+
 # ---- read.data ----
 # read data
 dolphin.gps <- 
