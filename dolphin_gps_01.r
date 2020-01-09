@@ -41,12 +41,12 @@ library(viridisLite)
 # library(shinystan)
 
 
-# ---- read.data ----
 # NOTE
 # 1. To read multiple .csv files while using the map2_df() function, refer to the following website
 # https://stackoverflow.com/questions/42028710/add-new-variable-to-list-of-data-frames-with-purrr-and-mutate-from-dplyr
 # 2. Form of the data is data.frame including all log data. Separate as necessary when in use.
 
+# ---- obtain.list ----
 # make a list of target files
 list.gps.log <- 
   base::list.files("../../southeastasiastudy/Cambodia/gps_log_file_dolphin/",
@@ -67,7 +67,10 @@ name.gps.logger <-
                          ), 
                          sep=""
                          )
+# 
+## --- END --- ###
 
+# ---- read.data ----
 # read the target data
 dolphin.gps <- 
   list.gps.log %>% 
@@ -182,10 +185,12 @@ dolphin.gps.dec.19.sub %>%
 # 
 ## --- END --- ###
 
-# ---- route.map ----
+# ---- map.key ----
 # read Google API key
 # Without the API, we cannot use get_map() function below
 source("map.key.r")
+
+# ---- route.map ----
 # center of satellite imagery map
 # Set the number while referring to satellite map
 lat.center.dolphin <- c(12.608)
@@ -219,6 +224,8 @@ dolphin.sat.gps.01 <-
   ) +
   facet_wrap(~ gps.logger.name) +
   theme_classic()
+
+dolphin.sat.gps.01
 
 # # save the figure
 # # Comment out when not in use
