@@ -76,11 +76,12 @@ living.status <-
 #
 # --- END --- ###
 
-# ---- data.fish.cost ----
+# pick up 
+# ---- data.boat.dolphin.income ----
 living.status.boat.fish.cost <- 
   living.status %>% 
   dplyr::filter(boat == "1") %>%   # person engaging in dolphin boat (If not, 0)
-  dplyr::filter(grepl("15.",       # cost for fishing
+  dplyr::filter(grepl("24.",       # cost for fishing
                       question
                       )
                 ) %>%  
@@ -100,7 +101,7 @@ living.status.boat.fish.cost <-
 #
 # --- END --- ###
 
-# ---- line.cost ----
+# ---- line.boat.dolphin.income ----
 line.boat.fish.cost <- 
   living.status.boat.fish.cost %>% 
   ggplot(aes(x = month, y = answer, colour = id)) +
