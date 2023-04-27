@@ -66,17 +66,16 @@ logger_data_arranged <-
     )
   )
 # 
-# 飛行機が飛んでいる時間を塗り分ける区間を設定する
-# 分析には関係ないから、預けている時間に変えてもいい
-# そうしたほうがいいね
+# 荷物を預けている時間を塗り分ける区間を設定する
+# 預けている時間に変えた。
 rects <- 
   data.frame(
     xstart = as.POSIXct(
-      c("2023-03-19 20:55:00", "2023-03-20 01:00:00"), 
+      c("2023-03-19 20:55:00"), 
       tz = "Asia/Bangkok"
       ),
     xend = as.POSIXct(
-      c("2023-03-19 22:00:00", "2023-03-20 06:00:00"), 
+      c("2023-03-20 06:00:00"), 
       tz="Asia/Bangkok"
       )
   )
@@ -103,7 +102,7 @@ line_logger_data <-
   scale_x_datetime(date_labels = "%d %b %H:%M", date_breaks = "8 hours") +
   labs(
     title = "Temperature inside / outside of cool box",
-    subtitle = "Yellow: outside; Black: inside; Grey: flight period",
+    subtitle = "Yellow: outside; Black: inside; Grey: Period when we dropped the baggages.",
     x = "Time (Unit: 1 min)",
     y = "Temperature (Unit: Temperature (°C))",
     color = "Loggers' position"
@@ -124,6 +123,8 @@ ggsave(
 # 分析用データ作成
 # MCMC収束を容易にするため、系列毎に標準偏差で割った
 # 系列をつくる
+
+
 logger_data_arranged_longer <- 
   logger_data_arranged %>% 
   tidyr::pivot_wider(
@@ -131,11 +132,15 @@ logger_data_arranged_longer <-
     values_from = temp
   ) %>% 
   # ここです
-  mutate(
-    outside_scale = outside/sd(outside),
-    inside_scale = inside/sd(outside)
-  ) %>%
-  as_tsibble()
+  dplyr::mutate(
+    outside_scale = outside/sd(outside), # 1.77
+    inside_scale = inside/sd(inside), # 4.90
+    outside_log = log(outside+10),
+    inside_log = log(inside+10),
+  )
+# Reference: SD of inside / outside
+# logger_data_arranged %>% filter(logger_id == "outside") %>% select(temp) %>% summarize(sd= sd(temp)) %>% as.numeric()
+# logger_data_arranged %>% filter(logger_id == "inside") %>% select(temp) %>% summarize(sd= sd(temp)) %>% as.numeric()
 # 
 # 正規化したデータを使った作図用データセット作成
 logger_data_arranged_02 <- 
@@ -187,21 +192,6 @@ ggsave(
   units = "mm"
 )
 # 
-# VARです
-# hogefit <- 
-#   logger_data_arranged_longer %>% 
-#   model(
-#     VAR = fable::VAR(vars(outside_scale, inside_scale) ~ AR(p = 0:5)),
-#     VARc = fable::VAR(vars(outside_scale, inside_scale) ~ AR(p = 0:10) + 1)
-#   )
-# hogefit %>% glance()
-# hogefit %>% select(VARc) %>% report()
-# hogehoge <- hogefit %>% select(VARc) %>% coef()
-# 
-# write_excel_csv(hogehoge,"hogehoge.csv")
-# 
-# hogefit %>% forecast() %>% autoplot(logger_data_arranged_longer)
-# 
 # 状態空間モデル用データセット
 logger_data_arranged_longer_ssm <- 
   logger_data_arranged_longer %>% 
@@ -212,45 +202,115 @@ logger_data_arranged_longer_ssm <-
       TRUE ~ "0"
     )
   )
+# 
 # stanにわたすデータ
 n <- nrow(logger_data_arranged_longer_ssm)
-y <- logger_data_arranged_longer_ssm$outside_scale
-u <- logger_data_arranged_longer_ssm$inside_scale
-w <- as.numeric(logger_data_arranged_longer_ssm$drop)
+Y <- logger_data_arranged_longer_ssm$outside
+U <- logger_data_arranged_longer_ssm$inside
+W <- as.numeric(logger_data_arranged_longer_ssm$drop)
 # stanをキックするコード
 model_02 <- 
   cmdstanr::cmdstan_model(
-    "outside_02.stan", 
+    "inside_01.stan", 
     quiet = TRUE
     )
 fit <- 
   model_02$sample(
     data = list(
       n = n,
-      y = y,
-      u = u,
-      w = w
+      Y = Y,
+      U = U,
+      W = W
       ),
     seed = 123,
     # イテレーション回数。
     # ある程度回数が多いほうがいい。
-    iter_sampling = 50000,
-    iter_warmup = 50000, 
+    iter_sampling = 2000,
+    iter_warmup = 2000, 
     parallel_chains = 4,
     refresh = 100,
     thin = 1
     )
 # 結果要約を保存
-# こうしたほうが見やすいよ。
+fit$save_object("transportation_temp_estimated.rds")
+# 
+# 結果要旨はこうしたほうが見やすいよ。
 write_excel_csv(
   fit$summary(), 
   "transportation_temp.csv"
   )
-
-# グラフ
-# 推定値と測定値
-# λの分布
-# ローカルレベル推移もいっしょに書いてあげるといいよ
-
+# 
+# 結果を表現する
+# ---- temp.est.results ----
+# 結果要約ファイルを読み込む
+transportation_temp_estimated <- 
+  readr::read_csv(
+    "transportation_temp.csv"
+    )
+# 結果要約から必要な箇所を取り出す
+transportation_temp_estimated_muu <- 
+  transportation_temp_estimated %>% 
+  dplyr::filter(stringr::str_detect(variable, "mu_u")) %>% 
+  dplyr::select(mean) %>% 
+  data.table::setnames("mu_u")
+transportation_temp_estimated_uhat <- 
+  transportation_temp_estimated %>% 
+  dplyr::filter(stringr::str_detect(variable, "uhat")) %>% 
+  dplyr::select(mean) %>% 
+  data.table::setnames("uhat")
+# 
+# 推定結果要約と実測値とを組み合わせる
+logger_data_arranged_longer_combined <- 
+  logger_data_arranged_longer %>% 
+  dplyr::bind_cols(transportation_temp_estimated_muu) %>% 
+  dplyr::bind_cols(transportation_temp_estimated_uhat) %>% 
+  # dplyr::select(outside, inside) %>% 
+  tidyr::pivot_longer(
+    cols = c("inside","mu_u","uhat"),
+    names_to = "condition",
+    values_to = "temperature"
+  ) %>% 
+  dplyr::mutate(
+    condition = factor(condition)
+  )
+# 
+# 作図
+line_transportation_temp_estimated <- 
+  logger_data_arranged_longer_combined %>%
+  ggplot2::ggplot(aes(x = time, y = temperature)) +
+  geom_line(
+    data = dplyr::filter(logger_data_arranged_longer_combined, condition %in% c("inside")),
+    aes(x = time,y = temperature, color = condition)
+  ) +
+  geom_point(
+    data = dplyr::filter(logger_data_arranged_longer_combined, condition %in% c("uhat")),
+    aes(x = time,y = temperature, colour = condition),
+    size = 0.5
+    ) + 
+  geom_rect(
+    data = rects, 
+    aes(xmin = floor_date(xstart, "second"), xmax = xend, ymin = -Inf, ymax = Inf),
+    fill="grey",
+    alpha = 0.2, 
+    inherit.aes = FALSE
+  ) + 
+  scale_x_datetime(date_labels = "%d %b %H:%M", date_breaks = "6 hours") +
+  labs(
+    x = "Time (ASEAN Common time)",
+    y = "Temperature (Unit °C)"
+  ) +
+  scale_colour_okabeito() +
+  theme_classic() +
+  theme(
+    legend.position = "none"
+  )
+# 保存
+ggsave(
+  "line_transportation_temp_estimated.pdf",
+  plot = line_transportation_temp_estimated,
+  width = 200,
+  height = 200, 
+  units = "mm"
+)
 
 # おしまい
