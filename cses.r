@@ -186,9 +186,17 @@ fish_2014_01 <-
   dplyr::left_join(target_2014, by = "hhid") %>% 
   dplyr::select(hhid, province_name, year_month_date, pond_number, pond_owning, area, market_value, monthly_rent)
 fish_2014_02 <- 
-  haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2014_2.dta")
+  haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2014_2.dta") %>% 
+  dplyr::left_join(target_2014, by = "hhid") %>% 
+  dplyr::select(hhid, province_name, year_month_date, q05f2c01, q05f2c03) %>% 
+  data.table::setnames(c("hhid","province_name","year_month_date","item","amount")) %>% 
+  dplyr::mutate(item = factor(item))
 fish_2014_03 <- 
-  haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2014_3.dta")
+  haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2014_3.dta") %>% 
+  dplyr::left_join(target_2014, by = "hhid") %>% 
+  dplyr::select(hhid, province_name, year_month_date, q05f3c01, q05f3c03) %>% 
+  data.table::setnames(c("hhid","province_name","year_month_date","item","amount")) %>% 
+  dplyr::mutate(item = factor(item))
 # 2019
 fish_2019_01 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2019_1.dta") %>% 
@@ -201,11 +209,30 @@ fish_2019_01 <-
 fish_2019_02 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2019_2.dta") %>% 
   labelled::unlabelled() %>% 
-  dplyr::select(hhid, q05fq1, q05fq2, q05fq3, q05f2_1, q05f2_2, q05f2_3, q05f2_4, q05f2_5, q05f2_6, q05f2_7, q05f2_8, q05f2_9, q05f2_10, q05f2_11, q05f2_12, q05f2_13)
+  dplyr::select(psu, hhid, q05f2_1, q05f2_2, q05f2_3, q05f2_4, q05f2_5, q05f2_6, q05f2_7, q05f2_8, q05f2_9, q05f2_10, q05f2_11, q05f2_12, q05f2_13) %>% 
+  data.table::setnames(c("psu", "hhid","i1","i2","i3","i4","i5","i6","i7","i8","i9","i10","i11","i12","i13")) %>% 
+  tidyr::pivot_longer(
+    cols = dplyr::starts_with("i"),
+    names_to = "item",
+    values_to = "amount"
+  ) %>% 
+  dplyr::mutate(item = stringr::str_sub(item, start = 2)) %>% 
+  dplyr::left_join(target_2019, by = "psu") %>% 
+  dplyr::select(hhid, province_name, year_month_date, item, amount)
 fish_2019_03 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2019_3.dta") %>% 
   labelled::unlabelled() %>% 
-  dplyr::select(hhid, q05f3_1, q05f3_2, q05f3_3, q05f3_4, q05f3_5, q05f3_6, q05f3_7, q05f3_8)
+  dplyr::select(psu, hhid, q05f3_1, q05f3_2, q05f3_3, q05f3_4, q05f3_5, q05f3_6, q05f3_7, q05f3_8) %>% 
+  data.table::setnames(c("psu", "hhid","i1","i2","i3","i4","i5","i6","i7","i8")) %>% 
+  tidyr::pivot_longer(
+    cols = dplyr::starts_with("i"),
+    names_to = "item",
+    values_to = "amount"
+  ) %>% 
+  dplyr::mutate(item = stringr::str_sub(item, start = 2)) %>% 
+  dplyr::left_join(target_2019, by = "psu") %>% 
+  dplyr::select(hhid, province_name, year_month_date, item, amount)
+
 # 2021
 fish_2021_01 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2021_1.dta") %>% 
@@ -219,12 +246,30 @@ fish_2021_01 <-
 fish_2021_02 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2021_2.dta") %>% 
   labelled::unlabelled() %>% 
-  dplyr::select(hhid, q05fq1, q05fq2, q05fq3, q05f2_1, q05f2_2, q05f2_3, q05f2_4, q05f2_5, q05f2_6, q05f2_7, q05f2_8, q05f2_9, q05f2_10, q05f2_11, q05f2_12, q05f2_13) %>% 
+  dplyr::select(psu, hhid, q05f2_1, q05f2_2, q05f2_3, q05f2_4, q05f2_5, q05f2_6, q05f2_7, q05f2_8, q05f2_9, q05f2_10, q05f2_11, q05f2_12, q05f2_13) %>% 
+  data.table::setnames(c("psu", "hhid","i1","i2","i3","i4","i5","i6","i7","i8","i9","i10","i11","i12","i13")) %>% 
+  tidyr::pivot_longer(
+    cols = dplyr::starts_with("i"),
+    names_to = "item",
+    values_to = "amount"
+  ) %>% 
+  dplyr::mutate(item = stringr::str_sub(item, start = 2)) %>% 
+  dplyr::left_join(target_2021, by = "psu") %>% 
+  dplyr::select(hhid, province_name, year_month_date, item, amount) %>% 
   dplyr::mutate(across(everything(), ~ replace_na(.x, 0)))
 fish_2021_03 <- 
   haven::read_dta("./cses_fishery/S05F_HHFishCultivation_2021_3.dta") %>% 
   labelled::unlabelled() %>% 
-  dplyr::select(hhid, q05f3_1, q05f3_2, q05f3_3, q05f3_4, q05f3_5, q05f3_6, q05f3_7, q05f3_8) %>% 
+  dplyr::select(psu, hhid, q05f3_1, q05f3_2, q05f3_3, q05f3_4, q05f3_5, q05f3_6, q05f3_7, q05f3_8) %>% 
+  data.table::setnames(c("psu", "hhid","i1","i2","i3","i4","i5","i6","i7","i8")) %>% 
+  tidyr::pivot_longer(
+    cols = dplyr::starts_with("i"),
+    names_to = "item",
+    values_to = "amount"
+  ) %>% 
+  dplyr::mutate(item = stringr::str_sub(item, start = 2)) %>% 
+  dplyr::left_join(target_2021, by = "psu") %>% 
+  dplyr::select(hhid, province_name, year_month_date, item, amount) %>% 
   dplyr::mutate(across(everything(), ~ replace_na(.x, 0)))
 # 
 # combine altogether
@@ -252,6 +297,56 @@ fish_01 <-
     hhid = factor(hhid)
     ) %>% 
   na.omit()
+readr::write_rds(fish_01, "fish_01.rds")
+# 2. expense for fishery
+fish_02 <- 
+  fish_2014_02 %>% 
+  dplyr::bind_rows(fish_2019_02) %>% 
+  dplyr::bind_rows(fish_2021_02) %>% 
+  dplyr::mutate(
+    dplyr::across(where(is.character), factor)
+  ) %>% 
+  dplyr::mutate(
+    item = dplyr::case_when(
+      item == "1" ~ "Breeding stock for raising fish/shrimp etc.",
+      item == "2" ~ "Feed for raising fish/shrimp etc.",
+      item == "3" ~ "Hired labour (cash plus Kind)",
+      item == "4" ~ "Ice",
+      item == "5" ~ "Repair and maintenance of nets and traps etc.",
+      item == "6" ~ "Repair and maintenance of boat",
+      item == "7" ~ "Boat fuel",
+      item == "8" ~ "Boat rent (cash)",
+      item == "9" ~ "Cash rent for tank, if leased in",
+      item == "10" ~ "Transportation of fish/shrimp/crab etc. to market",
+      item == "11" ~ "Services (technical assistance) received",
+      item == "12" ~ "Other (specify)",
+      item == "13" ~ "Total",
+      TRUE ~ "hoge"
+    )
+  )
+readr::write_rds(fish_02, "fish_02.rds")
+# 3. Reward
+fish_03 <- 
+  fish_2014_03 %>% 
+  dplyr::bind_rows(fish_2019_03) %>% 
+  dplyr::bind_rows(fish_2021_03) %>% 
+  dplyr::mutate(
+    dplyr::across(where(is.character), factor)
+  ) %>% 
+  dplyr::mutate(
+    item = dplyr::case_when(
+      item == "1" ~ "Proceeds from sale of fish, shrimp, crab etc. raised or captured",
+      item == "2" ~ "Value of fish, shrimp, crab etc. consumed in household",
+      item == "3" ~ "Value of fish, shrimp, crab etc. given away as gift, charity, barter, etc.",
+      item == "4" ~ "Value of fish, shrimp used for drying (dried fish/shrimp, smoked fish etc.)",
+      item == "5" ~ "Value of fish, shrimp used for preparation of fish/shrimp sauce",
+      item == "6" ~ "Value of fish, shrimp used for animal feed",
+      item == "7" ~ "Value of fish, shrimp used for other (specify)",
+      item == "8" ~ "Total",
+      TRUE ~ "hoge"
+    )
+  )
+readr::write_rds(fish_03, "fish_03.rds")
 
 
 
@@ -274,26 +369,7 @@ fish_01 <-
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# under construction
 
 # ----- combine.shapefiles -----
 
