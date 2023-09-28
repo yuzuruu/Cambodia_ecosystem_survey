@@ -8,6 +8,11 @@ library(tidyverse)
 library(haven)
 library(labelled)
 library(sf)
+library(khroma)
+library(ggrepel)
+library(ggsn)
+library(ggspatial)
+
 
 # ----- read.data -----
 
@@ -296,7 +301,12 @@ fish_01 <-
     pond_owning = factor(pond_owning),
     hhid = factor(hhid)
     ) %>% 
-  na.omit()
+  na.omit() %>% 
+  dplyr::mutate(
+    area_value = market_value / area,
+    area_rent = monthly_rent / area
+  )
+
 readr::write_rds(fish_01, "fish_01.rds")
 # 2. expense for fishery
 fish_02 <- 
@@ -347,35 +357,12 @@ fish_03 <-
     )
   )
 readr::write_rds(fish_03, "fish_03.rds")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# under construction
-
-# ----- combine.shapefiles -----
-
+# 
+# ----- map.data.fish.01 -----
+# 
 khm_shp <- 
   sf::st_read("./KHM_adm/KHM_adm1.shp")
-
+# 
 khm_province_en <- 
   c(
     "Banteay Meanchey", "Battambang", "Kampot", "Kampong Cham", "Kampong Chhnang", "Kampong Speu", "Kampong Thom",
@@ -383,20 +370,379 @@ khm_province_en <-
     "Phnom Penh", "Pursat", "Preah Vihear", "Prey Veng", "Ratanak Kiri", "Siemreap",
     "Stung Treng", "Svay Rieng", "Takeo", "Tboung Khmum"
   )
-  
+# 
 khm_shp_province <- 
   khm_shp %>% 
   bind_cols(
     ., 
     province_name =khm_province_en
-    )
+  )
+# 
 
-target_2014_shp <- 
-  target_2014 %>% 
+# draw chropleth maps
+# 1. aquaculture
+fish_01_map <- 
+  fish_01 %>% 
+  dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
+  tidyr::pivot_longer(
+    cols = c(-hhid, -province_name, -year_month_date, -year, -pond_number, -pond_owning),
+    names_to = "item",
+    values_to = "number"
+  ) %>% 
+  dplyr::select(hhid, province_name, year, item, number) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  dplyr::group_by(year, item, province_name) %>% 
+        dplyr::summarise(
+          N. = n(),
+          Sum = sum(number),
+          Mean = mean(number),
+        ) %>%
+  ungroup() %>% 
+  tidyr::complete(
+    province_name,year, item
+    ) %>% 
   dplyr::left_join(
     khm_shp_province,
     by = ("province_name")
   ) %>% 
-  dplyr::select(psu, hhid, province_name, year_month_date, geometry)
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  group_by(year, item) %>% 
+  nest() %>% 
+  dplyr::mutate(
+    chropleth_map = purrr::map(
+      data,
+      ~
+        ggplot2::ggplot(
+          data = ., 
+          aes(
+            geometry = geometry
+          )
+        ) +
+        geom_sf(
+          aes(
+            fill = scale(Sum)
+          ),
+          linewidth = 0.5
+        ) +
+        viridis::scale_fill_viridis(
+          option = "mako", 
+          direction = -1, 
+          na.value = "white"
+        ) +
+        labs(
+          title = paste(item, year, sep = " "), 
+          fill = "", 
+          x = "Longitude", 
+          y = "Latitude"
+        ) +
+        theme_void() +
+        theme(
+          legend.position = "bottom",
+          legend.key.width = unit(15, "mm"),
+          legend.key.height = unit(2, "mm")
+        )
+    )
+  )
+# save figures
+pdf("fish_01_map.pdf")
+fish_01_map$chropleth_map
+dev.off()
+# 
+# 2. expenses
+fish_02_map <- 
+  fish_02 %>% 
+  dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
+  dplyr::select(province_name, year, item, amount) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  dplyr::group_by(year, item, province_name) %>% 
+  dplyr::summarise(
+    N. = n(),
+    Sum = sum(amount),
+    Mean = mean(amount),
+  ) %>%
+  ungroup() %>% 
+  tidyr::complete(
+    province_name,year, item
+  ) %>% 
+  dplyr::left_join(
+    khm_shp_province,
+    by = ("province_name")
+  ) %>% 
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  group_by(year, item) %>% 
+  nest() %>% 
+  dplyr::mutate(
+    chropleth_map = purrr::map(
+      data,
+      ~
+        ggplot2::ggplot(
+          data = ., 
+          aes(
+            geometry = geometry
+          )
+        ) +
+        geom_sf(
+          aes(
+            fill = scale(Sum)
+          ),
+          linewidth = 0.5
+        ) +
+        viridis::scale_fill_viridis(
+          option = "mako", 
+          direction = -1, 
+          na.value = "white"
+        ) +
+        labs(
+          title = paste(item, year, sep = " "), 
+          fill = "", 
+          x = "Longitude", 
+          y = "Latitude"
+        ) +
+        theme_void() +
+        theme(
+          legend.position = "bottom",
+          legend.key.width = unit(15, "mm"),
+          legend.key.height = unit(2, "mm")
+        )
+    )
+  )
+# save figures
+pdf("fish_02_map.pdf")
+fish_02_map$chropleth_map
+dev.off()
+# 
+# 3. revenue
+fish_03_map <- 
+  fish_03 %>% 
+  dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
+  dplyr::select(province_name, year, item, amount) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  dplyr::group_by(year, item, province_name) %>% 
+  dplyr::summarise(
+    N. = n(),
+    Sum = sum(amount),
+    Mean = mean(amount),
+  ) %>%
+  ungroup() %>% 
+  tidyr::complete(
+    province_name,year, item
+  ) %>% 
+  dplyr::left_join(
+    khm_shp_province,
+    by = ("province_name")
+  ) %>% 
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  group_by(year, item) %>% 
+  nest() %>% 
+  dplyr::mutate(
+    chropleth_map = purrr::map(
+      data,
+      ~
+        ggplot2::ggplot(
+          data = ., 
+          aes(
+            geometry = geometry
+          )
+        ) +
+        geom_sf(
+          aes(
+            fill = scale(Sum)
+          ),
+          linewidth = 0.5
+        ) +
+        viridis::scale_fill_viridis(
+          option = "mako", 
+          direction = -1, 
+          na.value = "white"
+        ) +
+        labs(
+          title = paste(item, year, sep = " "), 
+          fill = "", 
+          x = "Longitude", 
+          y = "Latitude"
+        ) +
+        theme_void() +
+        theme(
+          legend.position = "bottom",
+          legend.key.width = unit(15, "mm"),
+          legend.key.height = unit(2, "mm")
+        )
+    )
+  )
+# save figures
+pdf("fish_03_map.pdf")
+fish_03_map$chropleth_map
+dev.off()
+# 
+# ----- cambodia.map -----
+# NOTE
+# Before use, download the data from GADM
+# (https://gadm.org/)
+# To make the layers, we use osmdata() library
+# The library has functions to check features and tags.
+# Before loading data for the layer, set them while checking them.
+# In detail of the features and tags, refer to the following page.
+# https://wiki.openstreetmap.org/wiki/Map_features
+# features
+osmdata::available_features()
+# tags
+osmdata::available_tags("natural")
+# 
+# administrative boundaries (province)
+khm_shp_province_name <- 
+  khm_shp_province %>% 
+  dplyr::mutate(
+    # First, we obtain the gravity
+    centroid = sf::st_centroid(geometry),
+    # Second, we compute the coordinates of the centroid into two parts; x (longitude) and y (latitude)
+    # x
+    center_x = st_coordinates(centroid)[,1],
+    # y
+    center_y = st_coordinates(centroid)[,2]
+  ) 
+# administrative boundaries (country)
+khm_shp_country <- 
+  sf::st_read("./KHM_adm/KHM_adm0.shp")
+# inland water
+# In detail of status (permanent / intermittent), 
+# refer to contents of .dbf file.
+# permanent water such as the Mekong river
+khm_shp_permanent_water <- 
+  sf::st_read("./KHM_adm/KHM_water_areas_dcw.shp"
+  ) %>% 
+  dplyr::filter(F_CODE_DES == "Inland Water")
+# intermittent water fluctuating by season
+khm_shp_intermittent_water <- 
+  sf::st_read("./KHM_adm/KHM_water_areas_dcw.shp"
+  ) %>% 
+  dplyr::filter(F_CODE_DES != "Inland Water")
+# surrounding countries to cover unnecessary features
+khm_shp_surroundings <- 
+  sf::st_read("./KHM_adm/THA_adm0.shp") %>% 
+  sf::st_union(sf::st_read("./KHM_adm/LAO_adm0.shp")) %>% 
+  sf::st_union(sf::st_read("./KHM_adm/VNM_adm0.shp"))
 
+
+# obtain featured object's data
+# road
+road <- 
+  osmdata::opq(
+    bbox = (
+      sf::st_transform(
+        khm_shp_country, 
+        4326
+        ) %>% 
+        sf::st_bbox(.)
+      )
+    ) %>%
+  osmdata::add_osm_feature(
+    key = "highway",
+    value = c(
+      "motorway", 
+      "motorway_junction",
+      "motorway_link",
+      "primary", 
+      "primary_link",
+      "secondary", 
+      "secondary_link",
+      "tertiary",
+      "tertiary_link",
+      "trunk",
+      "trunk_link"
+    )
+  ) %>%
+  osmdata::osmdata_sf()
+
+
+
+# overlay the area and line above
+khm_map_adm_water <- 
+  # intermittent water
+  khm_shp_intermittent_water %>% 
+  ggplot() +
+  xlim(102,108) +
+  ylim(10, 15) +
+  geom_sf(
+    fill = "lightblue", 
+    colour = NA,
+    alpha = 0.5
+    ) +
+  # permanent water
+  geom_sf(
+    data = khm_shp_permanent_water,
+    inherit.aes = FALSE,
+    fill = "blue", colour = NA,
+    size = 0.4,
+    alpha = 0.5
+  ) +
+  # road from osm
+  geom_sf(
+    data = road$osm_lines,
+    inherit.aes = FALSE,
+    color = "orange",
+    size = 0.2,
+    alpha = 1.0
+  ) +
+  # province boudnaries
+  geom_sf(
+    data = khm_shp_province_name,
+    linewidth = 0.5,
+    colour = "black",
+    fill = NA
+  ) +
+  geom_sf(
+    data = khm_shp_surroundings,
+    colour = NA,
+    linewidth = 1.0,
+    fill = "white"
+  ) +
+  # country boundaries
+  geom_sf(
+    data = khm_shp_country,
+    colour = "black",
+    linewidth = 1.0,
+    fill = NA
+  ) +
+  # provinces' name
+  ggrepel::geom_text_repel(
+    data = khm_shp_province_name,
+    aes(
+      center_x, 
+      center_y,
+      label =  stringr::str_wrap(province_name, 6)
+    ),
+    min.segment.length = unit(200, "mm"),
+    size = 4,
+    direction = "both",
+    max.overlaps = Inf
+    ) +
+  # scalebar
+  ggspatial::annotation_scale(
+    location = "br",
+    pad_x = unit(15, "mm")
+  ) +
+  # north arrow
+  ggspatial::annotation_north_arrow(
+    location = "br", 
+    pad_x = unit(0.8, "in"), 
+    pad_y = unit(0.8, "in"),
+    style = ggspatial::north_arrow_nautical(
+      fill = c("grey40", "white"),
+      line_col = "grey20"
+    )
+  ) +
+  labs(
+    x = "Longitude", 
+    y = "Latitude"
+    ) + 
+  theme_classic()
+# save the map
+ggsave(
+  "khm_map_adm_water.pdf",
+  plot = khm_map_adm_water,
+  device = cairo_pdf(),
+  height = 250,
+  width =250,
+  units = "mm"
+)
 
