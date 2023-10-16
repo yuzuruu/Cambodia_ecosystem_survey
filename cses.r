@@ -8,6 +8,7 @@ library(tidyverse)
 library(haven)
 library(labelled)
 library(sf)
+library(sfdep)
 library(khroma)
 library(ggrepel)
 library(ggsn)
@@ -304,9 +305,35 @@ fish_01 <-
   na.omit() %>% 
   dplyr::mutate(
     area_value = market_value / area,
-    area_rent = monthly_rent / area
-  )
-
+    area_rent = monthly_rent / area,
+    province_code = dplyr::case_when(
+      province_name == "Banteay Meanchey" ~ "BM", 
+      province_name == "Battambang" ~ "BB", 
+      province_name == "Kampong Cham" ~ "KC", 
+      province_name == "Kampong Chhnang" ~ "KN", 
+      province_name == "Kampong Speu" ~ "KS", 
+      province_name == "Kampong Thom" ~ "KT", 
+      province_name == "Kampot" ~ "KP", 
+      province_name == "Kandal" ~ "KD", 
+      province_name == "Kep" ~ "KE", 
+      province_name == "Koh Kong" ~ "KK", 
+      province_name == "Kratie" ~ "KR", 
+      province_name == "Mondul Kiri" ~ "MK", 
+      province_name == "Otdar Meanchey" ~ "OM", 
+      province_name == "Pailin" ~ "PL", 
+      province_name == "Phnom Penh" ~ "PP", 
+      province_name == "Preah Sihanouk" ~ "SV", 
+      province_name == "Preah Vihear" ~ "PR", 
+      province_name == "Prey Veng" ~ "PV", 
+      province_name == "Pursat" ~ "PS", 
+      province_name == "Ratanak Kiri" ~ "RK", 
+      province_name == "Siemreap" ~ "SR", 
+      province_name == "Svay Rieng" ~ "SG", 
+      province_name == "Takeo" ~ "TK", 
+      province_name == "Tboung Khmum" ~ "TH",    
+      TRUE ~ "hoge"
+    )
+  ) 
 readr::write_rds(fish_01, "fish_01.rds")
 # 2. expense for fishery
 fish_02 <- 
@@ -332,6 +359,33 @@ fish_02 <-
       item == "12" ~ "Other (specify)",
       item == "13" ~ "Total",
       TRUE ~ "hoge"
+    ),
+    province_code = dplyr::case_when(
+      province_name == "Banteay Meanchey" ~ "BM", 
+      province_name == "Battambang" ~ "BB", 
+      province_name == "Kampong Cham" ~ "KC", 
+      province_name == "Kampong Chhnang" ~ "KN", 
+      province_name == "Kampong Speu" ~ "KS", 
+      province_name == "Kampong Thom" ~ "KT", 
+      province_name == "Kampot" ~ "KP", 
+      province_name == "Kandal" ~ "KD", 
+      province_name == "Kep" ~ "KE", 
+      province_name == "Koh Kong" ~ "KK", 
+      province_name == "Kratie" ~ "KR", 
+      province_name == "Mondul Kiri" ~ "MK", 
+      province_name == "Otdar Meanchey" ~ "OM", 
+      province_name == "Pailin" ~ "PL", 
+      province_name == "Phnom Penh" ~ "PP", 
+      province_name == "Preah Sihanouk" ~ "SV", 
+      province_name == "Preah Vihear" ~ "PR", 
+      province_name == "Prey Veng" ~ "PV", 
+      province_name == "Pursat" ~ "PS", 
+      province_name == "Ratanak Kiri" ~ "RK", 
+      province_name == "Siemreap" ~ "SR", 
+      province_name == "Svay Rieng" ~ "SG", 
+      province_name == "Takeo" ~ "TK", 
+      province_name == "Tboung Khmum" ~ "TH",    
+      TRUE ~ "hoge"
     )
   )
 readr::write_rds(fish_02, "fish_02.rds")
@@ -354,6 +408,33 @@ fish_03 <-
       item == "7" ~ "Value of fish, shrimp used for other (specify)",
       item == "8" ~ "Total",
       TRUE ~ "hoge"
+    ),
+    province_code = dplyr::case_when(
+      province_name == "Banteay Meanchey" ~ "BM", 
+      province_name == "Battambang" ~ "BB", 
+      province_name == "Kampong Cham" ~ "KC", 
+      province_name == "Kampong Chhnang" ~ "KN", 
+      province_name == "Kampong Speu" ~ "KS", 
+      province_name == "Kampong Thom" ~ "KT", 
+      province_name == "Kampot" ~ "KP", 
+      province_name == "Kandal" ~ "KD", 
+      province_name == "Kep" ~ "KE", 
+      province_name == "Koh Kong" ~ "KK", 
+      province_name == "Kratie" ~ "KR", 
+      province_name == "Mondul Kiri" ~ "MK", 
+      province_name == "Otdar Meanchey" ~ "OM", 
+      province_name == "Pailin" ~ "PL", 
+      province_name == "Phnom Penh" ~ "PP", 
+      province_name == "Preah Sihanouk" ~ "SV", 
+      province_name == "Preah Vihear" ~ "PR", 
+      province_name == "Prey Veng" ~ "PV", 
+      province_name == "Pursat" ~ "PS", 
+      province_name == "Ratanak Kiri" ~ "RK", 
+      province_name == "Siemreap" ~ "SR", 
+      province_name == "Svay Rieng" ~ "SG", 
+      province_name == "Takeo" ~ "TK", 
+      province_name == "Tboung Khmum" ~ "TH",    
+      TRUE ~ "hoge"
     )
   )
 readr::write_rds(fish_03, "fish_03.rds")
@@ -375,17 +456,47 @@ khm_shp_province <-
   khm_shp %>% 
   bind_cols(
     ., 
-    province_name =khm_province_en
-  )
+    province_name = khm_province_en
+  ) %>% 
+  dplyr::mutate(
+      province_code = dplyr::case_when(
+        province_name == "Banteay Meanchey" ~ "BM", 
+        province_name == "Battambang" ~ "BB", 
+        province_name == "Kampong Cham" ~ "KC", 
+        province_name == "Kampong Chhnang" ~ "KN", 
+        province_name == "Kampong Speu" ~ "KS", 
+        province_name == "Kampong Thom" ~ "KT", 
+        province_name == "Kampot" ~ "KP", 
+        province_name == "Kandal" ~ "KD", 
+        province_name == "Kep" ~ "KE", 
+        province_name == "Koh Kong" ~ "KK", 
+        province_name == "Kratie" ~ "KR", 
+        province_name == "Mondul Kiri" ~ "MK", 
+        province_name == "Otdar Meanchey" ~ "OM", 
+        province_name == "Pailin" ~ "PL", 
+        province_name == "Phnom Penh" ~ "PP", 
+        province_name == "Preah Sihanouk" ~ "SV", 
+        province_name == "Preah Vihear" ~ "PR", 
+        province_name == "Prey Veng" ~ "PV", 
+        province_name == "Pursat" ~ "PS", 
+        province_name == "Ratanak Kiri" ~ "RK", 
+        province_name == "Siemreap" ~ "SR", 
+        province_name == "Stung Treng" ~ "ST", 
+        province_name == "Svay Rieng" ~ "SG", 
+        province_name == "Takeo" ~ "TK", 
+        province_name == "Tboung Khmum" ~ "TH",    
+        TRUE ~ "hoge"
+      )
+    )
 # 
 
 # draw chropleth maps
 # 1. aquaculture
 fish_01_map <- 
-  fish_01 %>% 
+  readr::read_rds("fish_01.rds") %>% 
   dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
   tidyr::pivot_longer(
-    cols = c(-hhid, -province_name, -year_month_date, -year, -pond_number, -pond_owning),
+    cols = c(-hhid, -province_name, -province_code, -year_month_date, -year, -pond_number, -pond_owning),
     names_to = "item",
     values_to = "number"
   ) %>% 
@@ -420,7 +531,7 @@ fish_01_map <-
         ) +
         geom_sf(
           aes(
-            fill = scale(Sum)
+            fill = scale(Mean)
           ),
           linewidth = 0.5
         ) +
@@ -430,7 +541,7 @@ fish_01_map <-
           na.value = "white"
         ) +
         labs(
-          title = paste(item, year, sep = " "), 
+          title = paste(item, year, "mean", sep = " "), 
           fill = "", 
           x = "Longitude", 
           y = "Latitude"
@@ -444,15 +555,15 @@ fish_01_map <-
     )
   )
 # save figures
-pdf("fish_01_map.pdf")
+pdf("fish_01_map_mean.pdf")
 fish_01_map$chropleth_map
 dev.off()
 # 
 # 2. expenses
 fish_02_map <- 
-  fish_02 %>% 
+  readr::read_rds("fish_02.rds") %>% 
   dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
-  dplyr::select(province_name, year, item, amount) %>% 
+  dplyr::select(province_name, province_code, year, item, amount) %>% 
   dplyr::mutate(item = factor(item)) %>% 
   dplyr::group_by(year, item, province_name) %>% 
   dplyr::summarise(
@@ -483,7 +594,7 @@ fish_02_map <-
         ) +
         geom_sf(
           aes(
-            fill = scale(Sum)
+            fill = scale(Mean)
           ),
           linewidth = 0.5
         ) +
@@ -493,7 +604,7 @@ fish_02_map <-
           na.value = "white"
         ) +
         labs(
-          title = paste(item, year, sep = " "), 
+          title = paste(item, year, "mean", sep = " "), 
           fill = "", 
           x = "Longitude", 
           y = "Latitude"
@@ -507,15 +618,15 @@ fish_02_map <-
     )
   )
 # save figures
-pdf("fish_02_map.pdf")
+pdf("fish_02_map_mean.pdf")
 fish_02_map$chropleth_map
 dev.off()
 # 
 # 3. revenue
 fish_03_map <- 
-  fish_03 %>% 
+  readr::read_rds("fish_03.rds") %>% 
   dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
-  dplyr::select(province_name, year, item, amount) %>% 
+  dplyr::select(province_name, province_code, year, item, amount) %>% 
   dplyr::mutate(item = factor(item)) %>% 
   dplyr::group_by(year, item, province_name) %>% 
   dplyr::summarise(
@@ -556,7 +667,7 @@ fish_03_map <-
           na.value = "white"
         ) +
         labs(
-          title = paste(item, year, sep = " "), 
+          title = paste(item, year, "mean", sep = " "), 
           fill = "", 
           x = "Longitude", 
           y = "Latitude"
@@ -570,7 +681,7 @@ fish_03_map <-
     )
   )
 # save figures
-pdf("fish_03_map.pdf")
+pdf("fish_03_map_mean.pdf")
 fish_03_map$chropleth_map
 dev.off()
 # 
@@ -652,8 +763,32 @@ road <-
     )
   ) %>%
   osmdata::osmdata_sf()
-
-
+# farm
+farmland <- 
+  osmdata::opq(
+    bbox = (
+      sf::st_transform(
+        khm_shp_country, 
+        4326
+      ) %>% 
+        sf::st_bbox(.)
+    )
+  ) %>%
+  osmdata::add_osm_feature(
+    key = "landuse",
+    value = c(
+      "farmland", 
+      "farmyard",
+      "animal_keeping",
+      "flowerbed", 
+      "forest",
+      "greenhouse_horticulture", 
+      "meadow",
+      "orchard",
+      "plant_nusery"
+    )
+  ) %>%
+  osmdata::osmdata_sf()
 
 # overlay the area and line above
 khm_map_adm_water <- 
@@ -667,6 +802,14 @@ khm_map_adm_water <-
     colour = NA,
     alpha = 0.5
     ) +
+  # farmland
+  geom_sf(
+    data = farmland$osm_lines,
+    inherit.aes = FALSE,
+    fill = "green", colour = NA,
+    size = 0.2,
+    alpha = 1.0
+  ) +
   # permanent water
   geom_sf(
     data = khm_shp_permanent_water,
@@ -709,13 +852,13 @@ khm_map_adm_water <-
     aes(
       center_x, 
       center_y,
-      label =  stringr::str_wrap(province_name, 6)
+      label =  stringr::str_wrap(province_code, 6)
     ),
-    min.segment.length = unit(200, "mm"),
-    size = 4,
+    # min.segment.length = unit(200, "mm"),
+    size = 5,
     direction = "both",
     max.overlaps = Inf
-    ) +
+  ) +
   # scalebar
   ggspatial::annotation_scale(
     location = "br",
@@ -745,4 +888,224 @@ ggsave(
   width =250,
   units = "mm"
 )
+# 
+# ----- Moran.statistics -----
+# Moran's I to detect local agglomeration
+# 1. aquaculture
+# make a dataset
+fish_01_summary_shp <-
+  # read data
+  readr::read_rds(
+    "fish_01.rds"
+    ) %>% 
+  # pick year up from ymd column
+  dplyr::mutate(
+    year = factor(
+      stringr::str_sub(
+        .$year_month_date, 
+        start = 1, 
+        end = 4
+        )
+      )
+    ) %>%
+  # make the dataset tidy
+  tidyr::pivot_longer(
+    cols = c(-hhid, -province_name, -province_code, -year_month_date, -year, -pond_number, -pond_owning),
+    names_to = "item",
+    values_to = "number"
+  ) %>% 
+  # select requisite variables
+  dplyr::select(hhid, province_name, year, item, number) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  # make a summary table
+  # Original data contains data with multiple columns. 
+  # We gave up individual analysis. Instead, we analyse by province.
+  dplyr::group_by(year, item, province_name) %>% 
+  dplyr::summarise(
+    N. = n(),
+    Sum = sum(number),
+    Mean = mean(number),
+  ) %>%
+  ungroup() %>% 
+  # complete missing data by NA
+  tidyr::complete(
+    province_name,year, item
+  ) %>% 
+  # combine shapefiles
+  dplyr::left_join(
+    khm_shp_province,
+    by = ("province_name")
+  ) %>% 
+  # select requisite data
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  # Replace NA generated by the tidyr::complete into 0
+  dplyr::mutate(across(everything(), ~ replace_na(.x, 0))) 
+# draw and save figure
+filter_year <- levels(factor(fish_01_summary_shp$year))
+filter_item <- levels(factor(fish_01_summary_shp$item))
+pdf("fish_01_moran_plot.pdf")
+for(i in 1:length(filter_year)){
+  for(j in 1:length(filter_item)){
+    fish_01_summary_shp_moran <-
+      fish_01_summary_shp %>% 
+      dplyr::filter(year == filter_year[i] & item == filter_item[j]) %>% 
+      dplyr::mutate(
+        nb = sfdep::st_contiguity(geometry),
+        wt = sfdep::st_weights(nb),
+        moran_mean = sfdep::local_moran(Mean, nb, wt)
+      ) %>% 
+      tidyr::unnest(moran_mean) %>% 
+      dplyr::mutate(pysal = ifelse(p_folded_sim <= 0.05, as.character(pysal), NA))
+    fish_01_summary_shp_moran_plot <- 
+      fish_01_summary_shp_moran %>% 
+      ggplot2::ggplot(
+        aes(
+          geometry = geometry,
+          fill = pysal
+        )
+      ) +
+      geom_sf() +
+      geom_sf(lwd = 0.2, color = "black") +
+      labs(
+        title = paste(filter_year[i], filter_item[j], sep = " "), 
+        subtitle = "Moran map",
+        fill = "Folded range ranked p"
+        ) +
+      theme_void() +
+      khroma::scale_fill_okabeito(reverse = TRUE)
+    print(fish_01_summary_shp_moran_plot)
+  }
+}
+dev.off()
+# 2. expense
+# make a dataset
+fish_02_summary_shp <- 
+  readr::read_rds("fish_02.rds") %>% 
+  dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
+  dplyr::select(hhid, province_name, year, item, amount) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  dplyr::group_by(year, item, province_name) %>% 
+  dplyr::summarise(
+    N. = n(),
+    Sum = sum(amount),
+    Mean = mean(amount),
+  ) %>%
+  ungroup() %>% 
+  tidyr::complete(
+    province_name,year, item
+  ) %>% 
+  dplyr::left_join(
+    khm_shp_province,
+    by = ("province_name")
+  ) %>% 
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  dplyr::mutate(across(everything(), ~ replace_na(.x, 0))) 
+# draw and save the figure
+filter_year <- levels(factor(fish_02_summary_shp$year))
+filter_item <- levels(factor(fish_02_summary_shp$item))
+# 
+pdf("fish_02_moran_plot.pdf")
+for(i in 1:length(filter_year)){
+  for(j in 1:length(filter_item)){
+    fish_02_summary_shp_moran <-
+      fish_02_summary_shp %>% 
+      dplyr::filter(year == filter_year[i] & item == filter_item[j]) %>% 
+      dplyr::mutate(
+        nb = sfdep::st_contiguity(geometry),
+        wt = sfdep::st_weights(nb),
+        moran_mean = sfdep::local_moran(Mean, nb, wt)
+      ) %>% 
+      tidyr::unnest(moran_mean) %>% 
+      dplyr::mutate(pysal = ifelse(p_folded_sim <= 0.05, as.character(pysal), NA))
+    fish_02_summary_shp_moran_plot <- 
+      fish_02_summary_shp_moran %>% 
+      ggplot2::ggplot(
+        aes(
+          geometry = geometry,
+          fill = pysal
+        )
+      ) +
+      geom_sf() +
+      geom_sf(lwd = 0.2, color = "black") +
+      labs(
+        title = paste(filter_year[i], filter_item[j], sep = " "), 
+        subtitle = "Moran map",
+        fill = "Folded range ranked p"
+      ) +
+      theme_void() +
+      khroma::scale_fill_okabeito(reverse = TRUE)
+    print(fish_02_summary_shp_moran_plot)
+  }
+}
+dev.off()
+# 3. revenue
+
+# fish_03_summary_shp %>% sf::st_drop_geometry() %>% select(-geometry) %>% write_excel_csv("hoge.csv")
+
+fish_03_summary_shp <- 
+  readr::read_rds("fish_03.rds") %>% 
+  dplyr::mutate(year = factor(stringr::str_sub(.$year_month_date, start = 1, end = 4))) %>%
+  dplyr::select(hhid, province_name, year, item, amount) %>% 
+  dplyr::mutate(item = factor(item)) %>% 
+  dplyr::group_by(year, item, province_name) %>% 
+  dplyr::summarise(
+    N. = n(),
+    Sum = sum(amount),
+    Mean = mean(amount),
+  ) %>%
+  ungroup() %>% 
+  tidyr::complete(
+    province_name,year, item
+  ) %>% 
+  dplyr::left_join(
+    khm_shp_province,
+    by = ("province_name")
+  ) %>% 
+  dplyr::select(province_name, year, item, N., Sum, Mean, geometry) %>% 
+  dplyr::filter(!is.na(province_name)) %>% 
+  dplyr::filter(!is.na(year)) %>% 
+  dplyr::mutate(across(everything(), ~ replace_na(.x, 0)))
+# draw and save the figure
+filter_year <- levels(factor(fish_03_summary_shp$year))
+filter_item <- levels(factor(fish_03_summary_shp$item))
+# 
+pdf("fish_03_moran_plot.pdf")
+for(i in 1:length(filter_year)){
+  for(j in 1:length(filter_item)){
+    fish_03_summary_shp_moran <-
+      fish_03_summary_shp %>% 
+      dplyr::filter(year == filter_year[i] & item == filter_item[j]) %>% 
+      dplyr::mutate(
+        nb = sfdep::st_contiguity(geometry),
+        wt = sfdep::st_weights(nb),
+        moran_mean = sfdep::local_moran(Mean, nb, wt)
+      ) %>% 
+      tidyr::unnest(moran_mean) %>% 
+      dplyr::mutate(pysal = ifelse(p_folded_sim <= 0.05, as.character(pysal), NA))
+    fish_03_summary_shp_moran_plot <- 
+      fish_03_summary_shp_moran %>% 
+      ggplot2::ggplot(
+        aes(
+          geometry = geometry,
+          fill = pysal
+        )
+      ) +
+      geom_sf() +
+      geom_sf(lwd = 0.2, color = "black") +
+      labs(
+        title = paste(filter_year[i], filter_item[j], sep = " "), 
+        subtitle = "Moran map",
+        fill = "Folded range ranked p"
+      ) +
+      theme_void() +
+      khroma::scale_fill_okabeito(reverse = TRUE)
+    print(fish_03_summary_shp_moran_plot)
+  }
+}
+dev.off()
+
+
+
+
+
 
