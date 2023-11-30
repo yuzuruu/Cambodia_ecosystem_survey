@@ -40,7 +40,6 @@ library(viridisLite)
 # theme_set(theme_get() + theme(aspect.ratio = 3/4))
 # library(shinystan)
 
-
 # NOTE
 # 1. To read multiple .csv files while using the map2_df() function, refer to the following website
 # https://stackoverflow.com/questions/42028710/add-new-variable-to-list-of-data-frames-with-purrr-and-mutate-from-dplyr
